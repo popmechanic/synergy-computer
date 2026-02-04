@@ -31,28 +31,40 @@ function parseInsights(text) {
     .slice(0, 4);
 }
 
+// Generate deterministic ID for analysis (same pairing = same doc)
+function makeAnalysisId(type1, type2) {
+  const sorted = [type1, type2].sort();
+  return `analysis-${sorted[0]}-${sorted[1]}`;
+}
+
+// Generate display name for pairing
+function makePairingName(type1, type2) {
+  return `${type1} + ${type2}`;
+}
+
 export default function App() {
   const { database, useLiveQuery, useDocument } = useFireproofClerk("synergy-db");
   const { callAI, loading: aiLoading } = useAI();
 
-  // Profile document
-  const { doc: profile, merge: mergeProfile, save: saveProfile } = useDocument({
-    _id: "profile",
-    type: "profile",
+  // Active selection document - tracks which analysis is currently viewed
+  const { doc: active, merge: mergeActive, save: saveActive } = useDocument({
+    _id: "active",
+    type: "active",
+    analysisId: null,
     person1Type: "",
-    person2Type: "",
-    swotGenerated: false
+    person2Type: ""
   });
 
-  // SWOT document
-  const { doc: swot, merge: mergeSwot, save: saveSwot } = useDocument({
-    _id: "swot",
-    type: "swot",
-    strengths: "",
-    weaknesses: "",
-    opportunities: "",
-    threats: ""
-  });
+  // Query all saved analyses
+  const { docs: savedAnalyses } = useLiveQuery("type", { key: "analysis" });
+
+  // Sort by lastViewedAt (most recent first)
+  const sortedAnalyses = [...savedAnalyses].sort((a, b) =>
+    (b.lastViewedAt || 0) - (a.lastViewedAt || 0)
+  );
+
+  // Get the currently active analysis document
+  const activeAnalysis = savedAnalyses.find(a => a._id === active.analysisId);
 
   // Chat input
   const { doc: chatInput, merge: mergeChatInput, reset: resetChatInput } = useDocument({
@@ -75,21 +87,21 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [sortedMessages.length]);
 
-  const canGenerateSWOT = profile.person1Type && profile.person2Type && !profile.swotGenerated;
-  const hasTypes = profile.person1Type && profile.person2Type;
-  const hasSWOT = profile.swotGenerated && swot.strengths;
+  const hasTypes = active.person1Type && active.person2Type;
+  const canGenerateSWOT = hasTypes && !activeAnalysis;
+  const hasSWOT = activeAnalysis && activeAnalysis.strengths;
 
   const generateSWOT = async () => {
-    if (!canGenerateSWOT) return;
+    if (!hasTypes) return;
     setGenerating(true);
 
-    const type1 = PERSONALITY_TYPES.find(t => t.code === profile.person1Type);
-    const type2 = PERSONALITY_TYPES.find(t => t.code === profile.person2Type);
+    const type1 = PERSONALITY_TYPES.find(t => t.code === active.person1Type);
+    const type2 = PERSONALITY_TYPES.find(t => t.code === active.person2Type);
 
     const prompt = `You are a relationship psychology expert analyzing Myers-Briggs personality compatibility.
 
-Person 1: ${profile.person1Type} (${type1?.name} - ${type1?.desc})
-Person 2: ${profile.person2Type} (${type2?.name} - ${type2?.desc})
+Person 1: ${active.person1Type} (${type1?.name} - ${type1?.desc})
+Person 2: ${active.person2Type} (${type2?.name} - ${type2?.desc})
 
 Provide a SWOT analysis for this couple's relationship dynamics. Be specific, insightful, and actionable. Format your response EXACTLY as follows (include the headers):
 
@@ -122,17 +134,27 @@ THREATS:
         return match ? match[1].trim() : "";
       };
 
-      mergeSwot({
+      // Create/update analysis document with deterministic ID
+      const analysisId = makeAnalysisId(active.person1Type, active.person2Type);
+      const now = Date.now();
+
+      await database.put({
+        _id: analysisId,
+        type: "analysis",
+        person1Type: active.person1Type,
+        person2Type: active.person2Type,
+        pairingName: makePairingName(active.person1Type, active.person2Type),
         strengths: parseSection("STRENGTHS"),
         weaknesses: parseSection("WEAKNESSES"),
         opportunities: parseSection("OPPORTUNITIES"),
         threats: parseSection("THREATS"),
-        generatedAt: Date.now()
+        generatedAt: now,
+        lastViewedAt: now
       });
-      await saveSwot();
 
-      mergeProfile({ swotGenerated: true });
-      await saveProfile();
+      // Set as active analysis
+      mergeActive({ analysisId });
+      await saveActive();
     } catch (err) {
       console.error("SWOT generation failed:", err);
     } finally {
@@ -140,9 +162,40 @@ THREATS:
     }
   };
 
+  // Load a saved analysis
+  const loadAnalysis = async (analysis) => {
+    mergeActive({
+      analysisId: analysis._id,
+      person1Type: analysis.person1Type,
+      person2Type: analysis.person2Type
+    });
+    await saveActive();
+
+    // Update lastViewedAt
+    await database.put({
+      ...analysis,
+      lastViewedAt: Date.now()
+    });
+
+    setShowChat(false);
+  };
+
+  // Delete a saved analysis
+  const deleteAnalysis = async (analysisId, e) => {
+    e.stopPropagation();
+    await database.del(analysisId);
+
+    // If deleted analysis was active, clear active selection
+    if (active.analysisId === analysisId) {
+      mergeActive({ analysisId: null, person1Type: "", person2Type: "" });
+      await saveActive();
+      setShowChat(false);
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!chatInput.content.trim() || aiLoading) return;
+    if (!chatInput.content.trim() || aiLoading || !activeAnalysis) return;
 
     const userContent = chatInput.content.trim();
     resetChatInput();
@@ -155,18 +208,18 @@ THREATS:
       createdAt: Date.now()
     });
 
-    const type1 = PERSONALITY_TYPES.find(t => t.code === profile.person1Type);
-    const type2 = PERSONALITY_TYPES.find(t => t.code === profile.person2Type);
+    const type1 = PERSONALITY_TYPES.find(t => t.code === activeAnalysis.person1Type);
+    const type2 = PERSONALITY_TYPES.find(t => t.code === activeAnalysis.person2Type);
 
     const systemPrompt = `You are a compassionate relationship advisor with deep expertise in Myers-Briggs personality dynamics.
 
 You're helping a couple understand their relationship:
-- Person 1: ${profile.person1Type} (${type1?.name} - ${type1?.desc})
-- Person 2: ${profile.person2Type} (${type2?.name} - ${type2?.desc})
+- Person 1: ${activeAnalysis.person1Type} (${type1?.name} - ${type1?.desc})
+- Person 2: ${activeAnalysis.person2Type} (${type2?.name} - ${type2?.desc})
 
 Their SWOT analysis revealed:
-- Strengths: ${swot.strengths?.substring(0, 300)}...
-- Key challenges: ${swot.weaknesses?.substring(0, 300)}...
+- Strengths: ${activeAnalysis.strengths?.substring(0, 300)}...
+- Key challenges: ${activeAnalysis.weaknesses?.substring(0, 300)}...
 
 Provide warm, practical advice that acknowledges both perspectives. Be specific about how each personality type experiences situations. Offer concrete suggestions they can try today.`;
 
@@ -207,13 +260,13 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
   };
 
   const resetAll = async () => {
+    // Clear chat messages
     for (const msg of messages) {
       await database.del(msg._id);
     }
-    mergeProfile({ person1Type: "", person2Type: "", swotGenerated: false });
-    await saveProfile();
-    mergeSwot({ strengths: "", weaknesses: "", opportunities: "", threats: "" });
-    await saveSwot();
+    // Clear active selection (but keep saved analyses)
+    mergeActive({ analysisId: null, person1Type: "", person2Type: "" });
+    await saveActive();
     setShowChat(false);
   };
 
@@ -360,6 +413,72 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
             transform: translateY(-50%);
             pointer-events: none;
             font-size: 10px;
+        }
+
+        .saved-analyses {
+            margin-top: var(--space-l);
+            border-top: 1px dashed var(--border-dashed);
+            padding-top: var(--space-m);
+        }
+
+        .saved-analyses-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-s);
+        }
+
+        .saved-analyses-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .saved-analysis-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            font-size: 14px;
+        }
+
+        .saved-analysis-item:hover {
+            background-color: var(--bg-alt);
+        }
+
+        .saved-analysis-item.active {
+            background-color: var(--bg-darker);
+            font-weight: 500;
+        }
+
+        .saved-analysis-item .pairing-name {
+            flex: 1;
+        }
+
+        .saved-analysis-item .delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity 0.15s ease, color 0.15s ease;
+        }
+
+        .saved-analysis-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .saved-analysis-item .delete-btn:hover {
+            color: var(--accent-red);
         }
 
         .actions {
@@ -742,9 +861,19 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                   <label>YOUR TYPE</label>
                   <div className="select-wrapper">
                     <select
-                      value={profile.person1Type}
+                      value={active.person1Type}
                       onChange={async (e) => {
-                        await database.put({ ...profile, _id: "profile", person1Type: e.target.value });
+                        const newType = e.target.value;
+                        // Check if this pairing already exists
+                        const existingId = active.person2Type
+                          ? makeAnalysisId(newType, active.person2Type)
+                          : null;
+                        const existing = existingId ? savedAnalyses.find(a => a._id === existingId) : null;
+                        mergeActive({
+                          person1Type: newType,
+                          analysisId: existing ? existingId : null
+                        });
+                        await saveActive();
                       }}
                     >
                       <option value="">Select your type...</option>
@@ -762,9 +891,19 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                   <label>PARTNER TYPE</label>
                   <div className="select-wrapper">
                     <select
-                      value={profile.person2Type}
+                      value={active.person2Type}
                       onChange={async (e) => {
-                        await database.put({ ...profile, _id: "profile", person2Type: e.target.value });
+                        const newType = e.target.value;
+                        // Check if this pairing already exists
+                        const existingId = active.person1Type
+                          ? makeAnalysisId(active.person1Type, newType)
+                          : null;
+                        const existing = existingId ? savedAnalyses.find(a => a._id === existingId) : null;
+                        mergeActive({
+                          person2Type: newType,
+                          analysisId: existing ? existingId : null
+                        });
+                        await saveActive();
                       }}
                     >
                       <option value="">Select partner's type...</option>
@@ -778,6 +917,31 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                   </div>
                 </div>
               </div>
+
+              {/* Saved Analyses List */}
+              {sortedAnalyses.length > 0 && (
+                <div className="saved-analyses">
+                  <div className="saved-analyses-header">Saved Analyses</div>
+                  <ul className="saved-analyses-list">
+                    {sortedAnalyses.map(analysis => (
+                      <li
+                        key={analysis._id}
+                        className={`saved-analysis-item ${active.analysisId === analysis._id ? 'active' : ''}`}
+                        onClick={() => loadAnalysis(analysis)}
+                      >
+                        <span className="pairing-name">{analysis.pairingName}</span>
+                        <button
+                          className="delete-btn"
+                          onClick={(e) => deleteAnalysis(analysis._id, e)}
+                          title="Delete analysis"
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="actions">
@@ -804,7 +968,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
           <main className="main-content">
             <header className="dashboard-header">
               <span className="report-meta">
-                {hasTypes ? `Report: ${profile.person1Type} + ${profile.person2Type}` : "Select types to begin"}
+                {activeAnalysis ? `Report: ${activeAnalysis.pairingName}` : hasTypes ? `Report: ${active.person1Type} + ${active.person2Type}` : "Select types to begin"}
               </span>
               {hasSWOT && (
                 <button className="reset-btn" onClick={resetAll}>Start Over</button>
@@ -819,7 +983,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                     <div className="swot-label">Strengths</div>
                     <div className="swot-score">92%</div>
                     <ul className="insight-list">
-                      {parseInsights(swot.strengths).map((insight, i) => (
+                      {parseInsights(activeAnalysis.strengths).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
                       ))}
                     </ul>
@@ -833,7 +997,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                     <div className="swot-label">Weaknesses</div>
                     <div className="swot-score">15%</div>
                     <ul className="insight-list">
-                      {parseInsights(swot.weaknesses).map((insight, i) => (
+                      {parseInsights(activeAnalysis.weaknesses).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
                       ))}
                     </ul>
@@ -847,7 +1011,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                     <div className="swot-label">Opportunities</div>
                     <div className="swot-score">Grow</div>
                     <ul className="insight-list">
-                      {parseInsights(swot.opportunities).map((insight, i) => (
+                      {parseInsights(activeAnalysis.opportunities).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
                       ))}
                     </ul>
@@ -861,7 +1025,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                     <div className="swot-label">Threats</div>
                     <div className="swot-score">Risk</div>
                     <ul className="insight-list">
-                      {parseInsights(swot.threats).map((insight, i) => (
+                      {parseInsights(activeAnalysis.threats).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
                       ))}
                     </ul>
@@ -897,9 +1061,9 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                   <button className="close-btn" onClick={() => setShowChat(false)}>×</button>
                 </div>
                 <div className="chat-messages">
-                  {sortedMessages.length === 0 && (
+                  {sortedMessages.length === 0 && activeAnalysis && (
                     <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-                      Ask anything about your {profile.person1Type} + {profile.person2Type} dynamic...
+                      Ask anything about your {activeAnalysis.pairingName} dynamic...
                     </p>
                   )}
                   {sortedMessages.map((msg) => (
