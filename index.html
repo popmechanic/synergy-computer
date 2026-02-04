@@ -1280,9 +1280,14 @@ function HiddenMenuWrapper({
   children,
   menuContent,
   triggerBounce,
-  showVibesSwitch = true
+  showVibesSwitch = true,
+  isOpen: controlledIsOpen,
+  onOpenChange
 }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [internalMenuOpen, setInternalMenuOpen] = React.useState(false);
+  const isControlled = controlledIsOpen !== undefined;
+  const menuOpen = isControlled ? controlledIsOpen : internalMenuOpen;
+  const setMenuOpen = isControlled ? (v) => onOpenChange?.(typeof v === 'function' ? v(menuOpen) : v) : setInternalMenuOpen;
   const [menuHeight, setMenuHeight] = React.useState(0);
   const menuRef = React.useRef(null);
   const buttonRef = React.useRef(null);
@@ -1898,7 +1903,8 @@ function VibesPanel({
   style,
   className,
   baseURL,
-  token
+  token,
+  onClose
 } = {}) {
   const emailId = React.useId();
   const isMobile = useIsMobile();
@@ -1963,7 +1969,37 @@ function VibesPanel({
       document.removeEventListener("vibes-share-error", handleShareError);
     };
   }, []);
-  return /* @__PURE__ */ React.createElement("div", { style: getOuterContainerStyle(style), className }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { style: getOuterContainerStyle(style), className },
+    onClose && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: onClose,
+        "aria-label": "Close menu",
+        style: {
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          width: "32px",
+          height: "32px",
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "4px",
+          color: "var(--vibes-gray-dark, #666)",
+          transition: "background 0.2s, color 0.2s"
+        },
+        onMouseEnter: (e) => { e.currentTarget.style.background = "rgba(0,0,0,0.1)"; e.currentTarget.style.color = "#000"; },
+        onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--vibes-gray-dark, #666)"; }
+      },
+      /* @__PURE__ */ React.createElement("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" },
+        /* @__PURE__ */ React.createElement("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
+        /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
+      )
+    ),
+    /* @__PURE__ */ React.createElement(
     LabelContainer,
     {
       label: "Launcher",
@@ -2313,6 +2349,7 @@ export default function App() {
 
   const [generating, setGenerating] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const chatEndRef = useRef(null);
 
   // Scroll chat to bottom
@@ -2698,6 +2735,35 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
             color: var(--text-main);
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .vibes-header-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .vibes-header-btn:hover {
+            border-color: var(--text-main);
+        }
+
+        .vibes-header-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .swot-grid {
             flex: 1;
             display: flex;
@@ -2988,6 +3054,12 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
         }
       `}</style>
 
+      <HiddenMenuWrapper
+        menuContent={<VibesPanel onClose={() => setMenuOpen(false)} />}
+        showVibesSwitch={false}
+        isOpen={menuOpen}
+        onOpenChange={setMenuOpen}
+      >
       <div className="synergy-app">
         <div className="app-container">
           {/* Sidebar */}
@@ -3069,9 +3141,19 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
               <span className="report-meta">
                 {hasTypes ? `Report: ${profile.person1Type} + ${profile.person2Type}` : "Select types to begin"}
               </span>
-              {hasSWOT && (
-                <button className="reset-btn" onClick={resetAll}>Start Over</button>
-              )}
+              <div className="header-actions">
+                {hasSWOT && (
+                  <button className="reset-btn" onClick={resetAll}>Start Over</button>
+                )}
+                <button
+                  className="vibes-header-btn"
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  aria-label="Settings menu"
+                  aria-expanded={menuOpen}
+                >
+                  <VibesSwitch size={20} isActive={menuOpen} />
+                </button>
+              </div>
             </header>
 
             {hasSWOT ? (
@@ -3198,6 +3280,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
           </main>
         </div>
       </div>
+      </HiddenMenuWrapper>
     </>
   );
 }
@@ -3257,9 +3340,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
               <AuthGate />
             </SignedOut>
             <SignedIn>
-              <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <App />
-              </HiddenMenuWrapper>
+              <App />
             </SignedIn>
           </ClerkFireproofProvider>
         );
