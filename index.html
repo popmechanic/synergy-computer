@@ -2280,7 +2280,7 @@ export default function App() {
   const { callAI, loading: aiLoading } = useAI();
 
   // Profile document
-  const { doc: profile, merge: mergeProfile, save: saveProfile } = useDocument({
+  const { doc: profile } = useDocument({
     _id: "profile",
     type: "profile",
     person1Type: "",
@@ -2289,7 +2289,7 @@ export default function App() {
   });
 
   // SWOT document
-  const { doc: swot, merge: mergeSwot, save: saveSwot } = useDocument({
+  const { doc: swot } = useDocument({
     _id: "swot",
     type: "swot",
     strengths: "",
@@ -2366,17 +2366,22 @@ THREATS:
         return match ? match[1].trim() : "";
       };
 
-      mergeSwot({
+      await database.put({
+        ...swot,
+        _id: "swot",
+        type: "swot",
         strengths: parseSection("STRENGTHS"),
         weaknesses: parseSection("WEAKNESSES"),
         opportunities: parseSection("OPPORTUNITIES"),
         threats: parseSection("THREATS"),
         generatedAt: Date.now()
       });
-      await saveSwot();
 
-      mergeProfile({ swotGenerated: true });
-      await saveProfile();
+      await database.put({
+        ...profile,
+        _id: "profile",
+        swotGenerated: true
+      });
     } catch (err) {
       console.error("SWOT generation failed:", err);
     } finally {
@@ -2454,10 +2459,21 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
     for (const msg of messages) {
       await database.del(msg._id);
     }
-    mergeProfile({ person1Type: "", person2Type: "", swotGenerated: false });
-    await saveProfile();
-    mergeSwot({ strengths: "", weaknesses: "", opportunities: "", threats: "" });
-    await saveSwot();
+    await database.put({
+      ...profile,
+      _id: "profile",
+      person1Type: "",
+      person2Type: "",
+      swotGenerated: false
+    });
+    await database.put({
+      ...swot,
+      _id: "swot",
+      strengths: "",
+      weaknesses: "",
+      opportunities: "",
+      threats: ""
+    });
     setShowChat(false);
   };
 
