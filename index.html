@@ -2242,7 +2242,7 @@ if (typeof window !== 'undefined') {
     <script type="text/babel" data-type="module">
       import ReactDOMClient from "react-dom/client";
 
-      import React, { useState, useEffect, useRef } from "react";
+      import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useFireproofClerk } from "use-fireproof";
 
 const PERSONALITY_TYPES = [
@@ -2306,8 +2306,9 @@ export default function App() {
 
   // Chat messages
   const { docs: messages } = useLiveQuery("type", { key: "message" });
-  const sortedMessages = [...messages].sort((a, b) =>
-    (a.createdAt || 0) - (b.createdAt || 0)
+  const sortedMessages = useMemo(() =>
+    [...messages].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)),
+    [messages]
   );
 
   const [generating, setGenerating] = useState(false);
@@ -2456,9 +2457,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
   };
 
   const resetAll = async () => {
-    for (const msg of messages) {
-      await database.del(msg._id);
-    }
+    await Promise.all(messages.map(msg => database.del(msg._id)));
     await database.put({
       ...profile,
       _id: "profile",
