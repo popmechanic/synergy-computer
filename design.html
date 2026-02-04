@@ -1,0 +1,490 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">SYNERGY | Relationship AI</title>
+    <style vid="5">
+        :root {
+            
+            --bg-main: #E3DDD3;
+            --bg-alt: #DAD3C9;
+            --bg-darker: #D1C9BE;
+            
+            --border: #C4BBB0;
+            --border-dashed: #B0A79E;
+            
+            --text-main: #1F1C18;
+            --text-secondary: #59524B;
+            
+            
+            --accent-blue: #4A72D4;
+            --accent-red: #C23B2B;
+            --accent-olive: #B5C061;
+            --accent-gold: #EBD581;
+            --accent-dark: #6E6662;
+            --accent-slate: #5F5955;
+            
+            
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            
+            
+            --space-xs: 4px;
+            --space-s: 12px;
+            --space-m: 24px;
+            --space-l: 40px;
+            --space-xl: 80px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden; 
+            display: flex;
+            font-feature-settings: "ss01", "ss02";
+        }
+
+        
+        .pattern-bg {
+            
+            background-image: 
+                radial-gradient(circle at 50% 50%, transparent 35%, rgba(0,0,0,0.06) 36%, rgba(0,0,0,0.06) 55%, transparent 56%),
+                radial-gradient(circle at 0% 0%, transparent 35%, rgba(0,0,0,0.06) 36%, rgba(0,0,0,0.06) 55%, transparent 56%),
+                radial-gradient(circle at 100% 0%, transparent 35%, rgba(0,0,0,0.06) 36%, rgba(0,0,0,0.06) 55%, transparent 56%),
+                radial-gradient(circle at 0% 100%, transparent 35%, rgba(0,0,0,0.06) 36%, rgba(0,0,0,0.06) 55%, transparent 56%),
+                radial-gradient(circle at 100% 100%, transparent 35%, rgba(0,0,0,0.06) 36%, rgba(0,0,0,0.06) 55%, transparent 56%);
+            background-size: 24px 24px;
+        }
+
+        
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        
+        .sidebar {
+            width: 380px;
+            min-width: 380px;
+            background-color: var(--bg-main);
+            border-right: 1px solid var(--border);
+            padding: var(--space-l);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-y: auto;
+        }
+
+        .brand-block {
+            margin-bottom: var(--space-xl);
+        }
+
+        h1 {
+            font-size: 64px;
+            font-weight: 500;
+            letter-spacing: -1.5px;
+            line-height: 1;
+            margin-bottom: var(--space-m);
+            color: var(--text-main);
+        }
+
+        .description {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-main);
+            max-width: 280px;
+        }
+
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-m);
+            margin-bottom: auto;
+        }
+
+        .field {
+            position: relative;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: var(--space-s);
+            color: var(--text-main);
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        select {
+            width: 100%;
+            appearance: none;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--text-main);
+            font-family: var(--font-family);
+            font-size: 20px;
+            padding: 8px 0;
+            border-radius: 0;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .select-arrow {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 10px;
+        }
+
+        
+        .actions {
+            margin-top: var(--space-l);
+            display: flex;
+            align-items: center;
+            gap: var(--space-m);
+        }
+
+        .submit-btn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .submit-label {
+            font-size: 24px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        
+        .dashboard-header {
+            height: 80px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 var(--space-m);
+            background: var(--bg-main);
+        }
+
+        .report-meta {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        
+        .swot-grid {
+            flex: 1;
+            display: flex;
+            width: 100%;
+            height: 100%; 
+        }
+
+        .swot-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        .swot-column:last-child {
+            border-right: none;
+        }
+
+        
+        .swot-column:nth-child(odd) { background-color: var(--bg-main); }
+        .swot-column:nth-child(even) { background-color: var(--bg-alt); }
+
+        .swot-header {
+            padding: var(--space-m);
+        }
+
+        .swot-label {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: var(--space-xs);
+            color: var(--text-main);
+        }
+
+        .swot-score {
+            font-size: 32px;
+            font-weight: 500;
+            letter-spacing: -1px;
+            margin-bottom: var(--space-s);
+        }
+
+        .swot-body {
+            padding: 0 var(--space-m);
+            flex: 1;
+        }
+
+        .insight-list {
+            list-style: none;
+        }
+
+        .insight-item {
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: var(--space-s);
+            position: relative;
+            padding-left: 12px;
+        }
+
+        .insight-item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--text-secondary);
+        }
+
+        
+        .pattern-anchor {
+            height: 120px; 
+            width: 100%;
+            margin-top: auto;
+            position: relative;
+            border-top: 1px dashed rgba(0,0,0,0.15);
+        }
+
+        
+        .col-strengths .pattern-anchor { background-color: var(--accent-olive); height: 35%; }
+        .col-weaknesses .pattern-anchor { background-color: var(--accent-red); height: 25%; }
+        .col-opportunities .pattern-anchor { background-color: var(--accent-gold); height: 45%; }
+        .col-threats .pattern-anchor { background-color: var(--accent-dark); height: 20%; }
+
+        
+        .chat-teaser {
+            position: absolute;
+            bottom: var(--space-m);
+            right: var(--space-m);
+            width: 320px;
+            background: #fff;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.05);
+            padding: var(--space-m);
+            z-index: 10;
+            background-color: var(--bg-main);
+        }
+
+        .chat-teaser h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--space-s);
+        }
+
+        .chat-input-fake {
+            border-bottom: 1px solid var(--text-main);
+            padding-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: var(--space-m);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .lock-icon {
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        
+        svg.arrow {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        
+        @media (max-width: 1024px) {
+            .sidebar { width: 300px; min-width: 300px; }
+            h1 { font-size: 48px; }
+        }
+
+        @media (max-width: 800px) {
+            .app-container { flex-direction: column; overflow-y: auto; }
+            .sidebar { width: 100%; min-width: 0; height: auto; padding: var(--space-m); }
+            .swot-grid { flex-direction: column; height: auto; }
+            .swot-column { border-right: none; border-bottom: 1px solid var(--border); min-height: 200px; }
+            .pattern-anchor { height: 60px !important; }
+            .chat-teaser { position: relative; width: 100%; right: auto; bottom: auto; margin: var(--space-m); width: auto; }
+        }
+    </style>
+</head>
+<body vid="6">
+
+    <div class="app-container" vid="7">
+        
+        
+        <aside class="sidebar" vid="8">
+            <div vid="9">
+                <div class="brand-block" vid="10">
+                    <h1 vid="11">Synergy</h1>
+                    <p class="description" vid="12">
+                        An AI-powered relationship advisor. Enter your personality types to unlock detailed insights about your dynamic.
+                    </p>
+                </div>
+
+                <div class="input-group" vid="13">
+                    <div class="field" vid="14">
+                        <label vid="15">YOUR TYPE</label>
+                        <div class="select-wrapper" vid="16">
+                            <select vid="17">
+                                <option vid="18">INTJ - Architect</option>
+                                <option vid="19">INTP - Logician</option>
+                                <option vid="20">ENTJ - Commander</option>
+                                <option vid="21">ENTP - Debater</option>
+                            </select>
+                            <span class="select-arrow" vid="22">▼</span>
+                        </div>
+                    </div>
+
+                    <div class="field" vid="23">
+                        <label vid="24">PARTNER TYPE</label>
+                        <div class="select-wrapper" vid="25">
+                            <select vid="26">
+                                <option vid="27">ENFP - Campaigner</option>
+                                <option vid="28">INFJ - Advocate</option>
+                                <option vid="29">INFP - Mediator</option>
+                                <option vid="30">ENFJ - Protagonist</option>
+                            </select>
+                            <span class="select-arrow" vid="31">▼</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions" vid="32">
+                <button class="submit-btn" vid="33">
+                    <svg class="arrow" viewBox="0 0 24 24" vid="34">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" vid="35"></path>
+                    </svg>
+                </button>
+                <span class="submit-label" vid="36">Analyze</span>
+            </div>
+        </aside>
+
+        
+        <main class="main-content" vid="37">
+            <header class="dashboard-header" vid="38">
+                <span class="report-meta" vid="39">Report: INTJ + ENFP</span>
+            </header>
+
+            <div class="swot-grid" vid="40">
+                
+                
+                <div class="swot-column col-strengths" vid="41">
+                    <div class="swot-header" vid="42">
+                        <div class="swot-label" vid="43">Strengths</div>
+                        <div class="swot-score" vid="44">92%</div>
+                        <ul class="insight-list" vid="45">
+                            <li class="insight-item" vid="46">Intellectual connection is high.</li>
+                            <li class="insight-item" vid="47">Complementary energy levels.</li>
+                            <li class="insight-item" vid="48">Shared intuitive view of the world.</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-anchor pattern-bg" vid="49"></div>
+                </div>
+
+                
+                <div class="swot-column col-weaknesses" vid="50">
+                    <div class="swot-header" vid="51">
+                        <div class="swot-label" vid="52">Weaknesses</div>
+                        <div class="swot-score" vid="53">15%</div>
+                        <ul class="insight-list" vid="54">
+                            <li class="insight-item" vid="55">Emotional expression gaps.</li>
+                            <li class="insight-item" vid="56">Routine maintenance struggles.</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-anchor pattern-bg" vid="57"></div>
+                </div>
+
+                
+                <div class="swot-column col-opportunities" vid="58">
+                    <div class="swot-header" vid="59">
+                        <div class="swot-label" vid="60">Opportunities</div>
+                        <div class="swot-score" vid="61">Grow</div>
+                        <ul class="insight-list" vid="62">
+                            <li class="insight-item" vid="63">Collaborative creative projects.</li>
+                            <li class="insight-item" vid="64">Traveling to unstructured places.</li>
+                            <li class="insight-item" vid="65">Learning financial planning together.</li>
+                            <li class="insight-item" vid="66">Designated "feelings" time.</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-anchor pattern-bg" vid="67"></div>
+                </div>
+
+                
+                <div class="swot-column col-threats" vid="68">
+                    <div class="swot-header" vid="69">
+                        <div class="swot-label" vid="70">Threats</div>
+                        <div class="swot-score" vid="71">Risk</div>
+                        <ul class="insight-list" vid="72">
+                            <li class="insight-item" vid="73">Social burnout alignment.</li>
+                            <li class="insight-item" vid="74">Ignoring practical details.</li>
+                        </ul>
+                    </div>
+                    <div class="pattern-anchor pattern-bg" vid="75"></div>
+                </div>
+
+            </div>
+
+            
+            <div class="chat-teaser" vid="76">
+                <h3 vid="77">Unlock Unlimited Questions</h3>
+                <p class="description" style="font-size: 13px;" vid="78">Dig deeper into your dynamic. Ask the AI anything about your relationship.</p>
+                <div class="chat-input-fake" vid="79">
+                    <span vid="80">"Why do we fight about money?"</span>
+                    <span class="lock-icon" vid="81">🔒</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+
+</body></html>
