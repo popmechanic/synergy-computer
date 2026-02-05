@@ -2,14 +2,14 @@
 
 ## Deployment
 
-**Hosting**: Cloudflare, syncing with Connect on studio exe.
+**Hosting**: Cloudflare Workers
 
-**Deploy via SCP**:
+**Deploy**:
 ```bash
-scp index.html synergy.exe.xyz:/tmp/ && ssh synergy.exe.xyz "sudo cp /tmp/index.html /var/www/html/"
+npx wrangler deploy
 ```
 
-Key distinction: `ssh exe.dev` is the orchestrator CLI (manage VMs), while `ssh synergy.exe.xyz` is the actual VM (file operations).
+Run from repo root. Requires wrangler.toml configuration.
 
 ## Domains
 - `synergy.computer` (production)
