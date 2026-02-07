@@ -2,14 +2,14 @@
 
 ## Deployment
 
-**Hosting**: Cloudflare Workers
+**Hosting**: Cloudflare Pages (project: `synergy-sell`)
 
 **Deploy**:
 ```bash
-npx wrangler deploy
+npx wrangler pages deploy . --project-name synergy-sell
 ```
 
-Run from repo root. Requires wrangler.toml configuration.
+Run from repo root. Uploads static files directly to Pages.
 
 ## Domains
 - `synergy.computer` (production)
