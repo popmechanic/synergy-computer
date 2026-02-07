@@ -10,10 +10,10 @@ const PERSONALITY_TYPES = [
   { code: "INFP", name: "Mediator", desc: "Poetic, kind healer" },
   { code: "ENFJ", name: "Protagonist", desc: "Charismatic, inspiring leader" },
   { code: "ENFP", name: "Campaigner", desc: "Enthusiastic, creative free spirit" },
-  { code: "ISTJ", name: "Logistician", desc: "Practical, fact-minded" },
+  { code: "ISTJ", name: "Logistician", desc: "Practical, fact-minded realist" },
   { code: "ISFJ", name: "Defender", desc: "Dedicated, warm protector" },
-  { code: "ESTJ", name: "Executive", desc: "Excellent administrator" },
-  { code: "ESFJ", name: "Consul", desc: "Caring, social helper" },
+  { code: "ESTJ", name: "Executive", desc: "Decisive, organized leader" },
+  { code: "ESFJ", name: "Consul", desc: "Caring, social connector" },
   { code: "ISTP", name: "Virtuoso", desc: "Bold, practical experimenter" },
   { code: "ISFP", name: "Adventurer", desc: "Flexible, charming artist" },
   { code: "ESTP", name: "Entrepreneur", desc: "Smart, energetic perceiver" },
@@ -852,7 +852,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
               <div className="brand-block">
                 <h1>Synergy</h1>
                 <p className="description">
-                  An AI-powered relationship advisor. Enter your personality types to unlock detailed insights about your dynamic.
+                  Understand how you connect, where you clash, and what makes your relationship thrive. Powered by personality science and AI.
                 </p>
               </div>
 
@@ -981,7 +981,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                 <div className="swot-column col-strengths">
                   <div className="swot-header">
                     <div className="swot-label">Strengths</div>
-                    <div className="swot-score">92%</div>
+                    <div className="swot-score">What works</div>
                     <ul className="insight-list">
                       {parseInsights(activeAnalysis.strengths).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
@@ -995,7 +995,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                 <div className="swot-column col-weaknesses">
                   <div className="swot-header">
                     <div className="swot-label">Weaknesses</div>
-                    <div className="swot-score">15%</div>
+                    <div className="swot-score">Watch for</div>
                     <ul className="insight-list">
                       {parseInsights(activeAnalysis.weaknesses).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
@@ -1009,7 +1009,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                 <div className="swot-column col-opportunities">
                   <div className="swot-header">
                     <div className="swot-label">Opportunities</div>
-                    <div className="swot-score">Grow</div>
+                    <div className="swot-score">Grow together</div>
                     <ul className="insight-list">
                       {parseInsights(activeAnalysis.opportunities).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
@@ -1023,7 +1023,7 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
                 <div className="swot-column col-threats">
                   <div className="swot-header">
                     <div className="swot-label">Threats</div>
-                    <div className="swot-score">Risk</div>
+                    <div className="swot-score">Stay aware</div>
                     <ul className="insight-list">
                       {parseInsights(activeAnalysis.threats).map((insight, i) => (
                         <li key={i} className="insight-item">{insight}</li>
@@ -1035,16 +1035,16 @@ Provide warm, practical advice that acknowledges both perspectives. Be specific 
               </div>
             ) : (
               <div className="empty-state">
-                {hasTypes ? "Click Analyze to generate your SWOT report" : "Select both personality types to begin"}
+                {hasTypes ? "Ready to analyze your dynamic" : "Select both personality types to begin"}
               </div>
             )}
 
             {/* Chat Teaser (locked) */}
             {hasSWOT && !showChat && (
               <div className="chat-teaser" onClick={() => setShowChat(true)}>
-                <h3>Unlock Unlimited Questions</h3>
+                <h3>Ask a Follow-Up Question</h3>
                 <p className="description" style={{ fontSize: "13px" }}>
-                  Dig deeper into your dynamic. Ask the AI anything about your relationship.
+                  Dig deeper into your dynamic. Ask anything about how your types interact.
                 </p>
                 <div className="chat-input-fake">
                   <span>"Why do we fight about money?"</span>
